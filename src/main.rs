@@ -1,7 +1,7 @@
 use std::fs::read_dir;
 use std::io::BufWriter;
+use std::io::Stderr;
 use std::io::Write;
-use std::path::Path;
 use std::path::PathBuf;
 use std::process::exit;
 
@@ -24,9 +24,9 @@ fn main() {
         write!(err_writer, "no depth is given, use default 1\n").unwrap();
     }
 
-    let mut depth: u8 = match depth {
+    let mut depth: u32 = match depth {
         Some(d) => {
-            let parsed = d.parse::<u8>();
+            let parsed = d.parse::<u32>();
             if parsed.is_err() {
                 write!(err_writer, "problem parsing depth\n").unwrap();
                 exit(2);
@@ -41,31 +41,45 @@ fn main() {
 
     results.push(base);
 
-    walk_dirs(&mut depth, &mut results);
+    walk_dirs(&mut depth, &mut results, &mut err_writer);
 
     for a in results {
-        write!(out_writer, "{:?}\n", a).unwrap();
+        write!(out_writer, "{}\n", a.display()).unwrap();
     }
 
     out_writer.flush().unwrap();
     err_writer.flush().unwrap();
 }
 
-fn walk_dirs(depth: &mut u8, results: &mut Vec<PathBuf>) {
+fn walk_dirs(depth: &mut u32, results: &mut Vec<PathBuf>, err_stream: &mut BufWriter<Stderr>) {
     let mut head = 0;
-    let mut tail = 0;
+    let mut tail = results.len() - 1;
 
     while *depth > 0 {
         let prev_len = results.len();
 
         for i in head..=tail {
             let path: &PathBuf = results.get(i).unwrap();
+            let read_dir_res = read_dir(path);
 
-            for entry_res in read_dir(path).unwrap() {
+            if read_dir_res.is_err() {
+                write!(
+                    err_stream,
+                    "could not open {}: {}\n",
+                    path.display(),
+                    read_dir_res.err().unwrap().to_string()
+                )
+                .unwrap();
+                continue;
+            }
+
+            for entry_res in read_dir_res.unwrap() {
                 let entry = entry_res.unwrap();
                 let path = entry.path();
 
-                if path.is_dir() {
+                // is_dir will traverse soft link, tested this!
+                // check for symlink is necessary
+                if path.is_dir() && !path.is_symlink() {
                     results.push(path);
                 }
             }
