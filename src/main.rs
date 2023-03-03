@@ -1,6 +1,7 @@
 use std::fs::read_dir;
 use std::io::BufWriter;
 use std::io::Stderr;
+use std::io::Stdout;
 use std::io::Write;
 use std::path::PathBuf;
 use std::process::exit;
@@ -8,7 +9,6 @@ use std::process::exit;
 fn main() {
     let mut args_iter = std::env::args().skip(1);
     let mut err_writer = BufWriter::new(std::io::stderr());
-    let mut out_writer = BufWriter::new(std::io::stdout());
 
     let base_dir = args_iter.next();
 
@@ -41,17 +41,15 @@ fn main() {
 
     results.push(base);
 
-    walk_dirs(&mut depth, &mut results, &mut err_writer);
+    let mut out_stream = BufWriter::new(std::io::stdout());
 
-    for a in results {
-        write!(out_writer, "{}\n", a.display()).unwrap();
-    }
+    walk_dirs(&mut depth, &mut results, &mut err_writer, &mut out_stream);
 
-    out_writer.flush().unwrap();
     err_writer.flush().unwrap();
+    out_stream.flush().unwrap();
 }
 
-fn walk_dirs(depth: &mut u32, results: &mut Vec<PathBuf>, err_stream: &mut BufWriter<Stderr>) {
+fn walk_dirs(depth: &mut u32, results: &mut Vec<PathBuf>, err_stream: &mut BufWriter<Stderr>, out_stream: &mut BufWriter<Stdout>) {
     let mut head = 0;
     let mut tail = results.len() - 1;
 
@@ -80,6 +78,7 @@ fn walk_dirs(depth: &mut u32, results: &mut Vec<PathBuf>, err_stream: &mut BufWr
                 // is_dir will traverse soft link, tested this!
                 // check for symlink is necessary
                 if path.is_dir() && !path.is_symlink() {
+                    write!(out_stream, "{}\n", &path.display()).unwrap();
                     results.push(path);
                 }
             }
