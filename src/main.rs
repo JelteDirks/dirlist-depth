@@ -41,7 +41,8 @@ fn main() {
 
     results.push(base);
 
-    let mut out_stream = BufWriter::new(std::io::stdout());
+    // 1 MB capacity
+    let mut out_stream = BufWriter::with_capacity(10_000_000, std::io::stdout());
 
     walk_dirs(&mut depth, &mut results, &mut err_writer, &mut out_stream);
 
