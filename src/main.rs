@@ -1,7 +1,6 @@
 use std::fs::read_dir;
 use std::io::BufWriter;
 use std::io::Stderr;
-use std::io::Stdout;
 use std::io::Write;
 use std::path::PathBuf;
 use std::process::exit;
@@ -41,18 +40,16 @@ fn main() {
 
     results.push(base);
 
-    // 1 MB capacity
-    let mut out_stream = BufWriter::with_capacity(10_000_000, std::io::stdout());
-
-    walk_dirs(&mut depth, &mut results, &mut err_writer, &mut out_stream);
+    walk_dirs(&mut depth, &mut results, &mut err_writer);
 
     err_writer.flush().unwrap();
-    out_stream.flush().unwrap();
 }
 
-fn walk_dirs(depth: &mut u32, results: &mut Vec<PathBuf>, err_stream: &mut BufWriter<Stderr>, out_stream: &mut BufWriter<Stdout>) {
+fn walk_dirs(depth: &mut u32, results: &mut Vec<PathBuf>, err_stream: &mut BufWriter<Stderr>) {
     let mut head = 0;
     let mut tail = results.len() - 1;
+
+    let mut out_stream = std::io::stdout().lock();
 
     while *depth > 0 {
         let prev_len = results.len();
