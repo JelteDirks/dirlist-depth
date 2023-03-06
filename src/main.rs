@@ -17,13 +17,15 @@ fn main() {
         exit(1);
     }
 
+    let mut settings: Settings = Settings::from_base(base_dir.unwrap());
+
     let depth = args_iter.next();
 
     if depth.is_none() {
         write!(err_writer, "no depth is given, use default 1\n").unwrap();
     }
 
-    let mut depth: u32 = match depth {
+    let depth: u32 = match depth {
         Some(d) => {
             let parsed = d.parse::<u32>();
             if parsed.is_err() {
@@ -35,14 +37,33 @@ fn main() {
         None => 1,
     };
 
-    let base = PathBuf::from(base_dir.as_ref().unwrap());
-    let mut results = Vec::new();
+    settings.set_depth(depth);
 
-    results.push(base);
+    let mut results = Vec::with_capacity(depth.pow(2) as usize);
 
-    walk_dirs(&mut depth, &mut results, &mut err_writer);
+    results.push(settings.base);
+
+    walk_dirs(&mut settings.depth, &mut results, &mut err_writer);
 
     err_writer.flush().unwrap();
+}
+
+struct Settings {
+    depth: u32,
+    base: PathBuf,
+}
+
+impl Settings {
+    fn from_base(base: String) -> Settings {
+        return Settings {
+            base: PathBuf::from(base),
+            depth: 1,
+        }
+    }
+
+    fn set_depth(&mut self, depth: u32) {
+        self.depth = depth;
+    }
 }
 
 fn walk_dirs(depth: &mut u32, results: &mut Vec<PathBuf>, err_stream: &mut BufWriter<Stderr>) {
@@ -73,10 +94,12 @@ fn walk_dirs(depth: &mut u32, results: &mut Vec<PathBuf>, err_stream: &mut BufWr
                 let entry = entry_res.unwrap();
                 let path = entry.path();
 
-                // is_dir will traverse soft link, tested this!
-                // check for symlink is necessary
+                // is_dir will traverse sym link, tested this!
+                // check for symlink is necessary even though docs say otherwise
                 if path.is_dir() && !path.is_symlink() {
-                    write!(out_stream, "{}\n", &path.display()).unwrap();
+                    if *depth == 1 {
+                        write!(out_stream, "{}\n", &path.display()).unwrap();
+                    }
                     results.push(path);
                 }
             }
