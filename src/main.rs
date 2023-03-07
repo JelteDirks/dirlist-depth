@@ -1,4 +1,6 @@
+use std::fs;
 use std::fs::read_dir;
+use std::io::stderr;
 use std::io::BufWriter;
 use std::io::Stderr;
 use std::io::Write;
@@ -55,10 +57,22 @@ struct Settings {
 
 impl Settings {
     fn from_base(base: String) -> Settings {
-        return Settings {
-            base: PathBuf::from(base),
-            depth: 1,
+        let base = fs::canonicalize(base);
+
+        if base.is_err() {
+            write!(
+                stderr(),
+                "base could not be resolved: {}",
+                base.err().unwrap()
+            )
+            .unwrap();
+            exit(1);
         }
+
+        return Settings {
+            base: base.unwrap(),
+            depth: 1,
+        };
     }
 
     fn set_depth(&mut self, depth: u32) {
