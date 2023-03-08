@@ -1,56 +1,30 @@
 use std::fs::read_dir;
 use std::io::BufWriter;
-use std::io::Stderr;
 use std::io::Write;
+use std::io::stderr;
 use std::path::PathBuf;
-use std::process::exit;
 
 use lsdep::settings::Settings;
 
 fn main() {
-    let mut args_iter = std::env::args().skip(1);
-    let mut err_writer = BufWriter::new(std::io::stderr());
+    let settings = Settings::from_args(std::env::args());
+    let mut result_list: Vec<PathBuf> = Vec::with_capacity((10 * settings.depth) as usize);
+    walk_dirs(&settings, &mut result_list);
 
-    let base_dir = args_iter.next();
-
-    if base_dir.is_none() {
-        write!(err_writer, "no base directory given\n").unwrap();
-        err_writer.flush().unwrap();
-        exit(1);
-    }
-
-    let mut settings: Settings = Settings::from_base(base_dir.unwrap());
-
-    let depth = args_iter.next();
-    let depth: u32 = match depth {
-        Some(d) => {
-            let parsed = d.parse::<u32>();
-            if parsed.is_err() {
-                write!(err_writer, "problem parsing depth\n").unwrap();
-                exit(2);
-            }
-            parsed.unwrap()
-        }
-        None => 1,
-    };
-
-    settings.set_depth(depth);
-
-    let mut working_list = Vec::with_capacity(depth.pow(2) as usize);
-    let mut result_list: Vec<PathBuf> = Vec::with_capacity(depth.pow(2) as usize);
-
-    working_list.push(settings.base);
-
-    walk_dirs(&settings.depth, &mut working_list, &mut err_writer, &mut result_list);
-
-    err_writer.flush().unwrap();
+    dbg!(result_list);
 }
 
 
-fn walk_dirs(d: &u32, working_dirs: &mut Vec<PathBuf>, err_stream: &mut BufWriter<Stderr>, result_dirs: &mut Vec<PathBuf>) {
+fn walk_dirs(settings: &Settings, result_dirs: &mut Vec<PathBuf>) {
+    let mut depth = settings.depth.clone();
+    let mut working_dirs: Vec<PathBuf> = Vec::with_capacity(depth.pow(2) as usize);
+
+    working_dirs.push(settings.get_base_clone());
+
+    let mut err_stream = BufWriter::new(stderr());
+
     let mut head = 0;
     let mut tail = working_dirs.len() - 1;
-    let mut depth = d.clone();
 
     while depth > 0 {
         let prev_len = working_dirs.len();
@@ -95,5 +69,7 @@ fn walk_dirs(d: &u32, working_dirs: &mut Vec<PathBuf>, err_stream: &mut BufWrite
 
         depth -= 1;
     }
+
+    err_stream.flush().unwrap();
 }
 
