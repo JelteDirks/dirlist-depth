@@ -1,11 +1,11 @@
-use std::fs;
 use std::fs::read_dir;
-use std::io::stderr;
 use std::io::BufWriter;
 use std::io::Stderr;
 use std::io::Write;
 use std::path::PathBuf;
 use std::process::exit;
+
+use lsdep::settings::Settings;
 
 fn main() {
     let mut args_iter = std::env::args().skip(1);
@@ -22,11 +22,6 @@ fn main() {
     let mut settings: Settings = Settings::from_base(base_dir.unwrap());
 
     let depth = args_iter.next();
-
-    if depth.is_none() {
-        write!(err_writer, "no depth is given, use default 1\n").unwrap();
-    }
-
     let depth: u32 = match depth {
         Some(d) => {
             let parsed = d.parse::<u32>();
@@ -41,56 +36,27 @@ fn main() {
 
     settings.set_depth(depth);
 
-    let mut results = Vec::with_capacity(depth.pow(2) as usize);
+    let mut working_list = Vec::with_capacity(depth.pow(2) as usize);
+    let mut result_list: Vec<PathBuf> = Vec::with_capacity(depth.pow(2) as usize);
 
-    results.push(settings.base);
+    working_list.push(settings.base);
 
-    walk_dirs(&mut settings.depth, &mut results, &mut err_writer);
+    walk_dirs(&settings.depth, &mut working_list, &mut err_writer, &mut result_list);
 
     err_writer.flush().unwrap();
 }
 
-struct Settings {
-    depth: u32,
-    base: PathBuf,
-}
 
-impl Settings {
-    fn from_base(base: String) -> Settings {
-        let base = fs::canonicalize(base);
-
-        if base.is_err() {
-            write!(
-                stderr(),
-                "base could not be resolved: {}",
-                base.err().unwrap()
-            )
-            .unwrap();
-            exit(1);
-        }
-
-        return Settings {
-            base: base.unwrap(),
-            depth: 1,
-        };
-    }
-
-    fn set_depth(&mut self, depth: u32) {
-        self.depth = depth;
-    }
-}
-
-fn walk_dirs(depth: &mut u32, results: &mut Vec<PathBuf>, err_stream: &mut BufWriter<Stderr>) {
+fn walk_dirs(d: &u32, working_dirs: &mut Vec<PathBuf>, err_stream: &mut BufWriter<Stderr>, result_dirs: &mut Vec<PathBuf>) {
     let mut head = 0;
-    let mut tail = results.len() - 1;
+    let mut tail = working_dirs.len() - 1;
+    let mut depth = d.clone();
 
-    let mut out_stream = std::io::stdout().lock();
-
-    while *depth > 0 {
-        let prev_len = results.len();
+    while depth > 0 {
+        let prev_len = working_dirs.len();
 
         for i in head..=tail {
-            let path: &PathBuf = results.get(i).unwrap();
+            let path: &PathBuf = working_dirs.get(i).unwrap();
             let read_dir_res = read_dir(path);
 
             if read_dir_res.is_err() {
@@ -111,22 +77,23 @@ fn walk_dirs(depth: &mut u32, results: &mut Vec<PathBuf>, err_stream: &mut BufWr
                 // is_dir will traverse sym link, tested this!
                 // check for symlink is necessary even though docs say otherwise
                 if path.is_dir() && !path.is_symlink() {
-                    if *depth == 1 {
-                        write!(out_stream, "{}\n", &path.display()).unwrap();
+                    if depth == 1 {
+                        result_dirs.push(entry.path());
                     }
-                    results.push(path);
+                    working_dirs.push(path);
                 }
             }
         }
 
-        if results.len() == prev_len {
+        if working_dirs.len() == prev_len {
             // no more directories to recurse
             break;
         }
 
         head = tail + 1;
-        tail = results.len() - 1;
+        tail = working_dirs.len() - 1;
 
-        *depth -= 1;
+        depth -= 1;
     }
 }
+
