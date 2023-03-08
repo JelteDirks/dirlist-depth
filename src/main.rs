@@ -16,9 +16,7 @@ fn main() {
 
 fn walk_dirs(settings: &Settings, result_dirs: &mut Vec<PathBuf>) {
     let mut depth = settings.depth();
-    let power = depth.pow(2);
-    let cut_off = 2usize.pow(20);
-    let capacity: usize = if power > cut_off { cut_off } else { power };
+    let capacity: usize = if depth >= 20 { 2usize.pow(20) } else { 2usize.pow((depth + 1) as u32) };
 
     let mut working_dirs: Vec<PathBuf> = Vec::with_capacity(capacity);
 
