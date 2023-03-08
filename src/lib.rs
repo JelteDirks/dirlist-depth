@@ -52,8 +52,22 @@ pub mod settings {
             return settings;
         }
 
-        pub fn get_base_clone(&self) -> PathBuf {
+        pub fn base(&self) -> PathBuf {
             return self.base.clone();
         }
+
+        pub fn depth(&self) -> usize {
+            return self.depth as usize;
+        }
+
     }
+
+    impl std::fmt::Display for Settings {
+        fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+            write!(f, "check {} with depth {}", self.base.display(), self.depth).unwrap();
+            todo!();
+        }
+    }
+
 }
+

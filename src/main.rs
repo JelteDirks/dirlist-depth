@@ -8,7 +8,7 @@ use lsdep::settings::Settings;
 
 fn main() {
     let settings = Settings::from_args(std::env::args());
-    let mut result_list: Vec<PathBuf> = Vec::with_capacity((10 * settings.depth) as usize);
+    let mut result_list: Vec<PathBuf> = Vec::with_capacity((10 * settings.depth()) as usize);
     walk_dirs(&settings, &mut result_list);
 
     dbg!(result_list);
@@ -16,10 +16,10 @@ fn main() {
 
 
 fn walk_dirs(settings: &Settings, result_dirs: &mut Vec<PathBuf>) {
-    let mut depth = settings.depth.clone();
+    let mut depth = settings.depth();
     let mut working_dirs: Vec<PathBuf> = Vec::with_capacity(depth.pow(2) as usize);
 
-    working_dirs.push(settings.get_base_clone());
+    working_dirs.push(settings.base());
 
     let mut err_stream = BufWriter::new(stderr());
 
