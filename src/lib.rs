@@ -60,12 +60,14 @@ pub mod settings {
             return self.depth as usize;
         }
 
+        pub fn set_depth(&mut self, d: usize) {
+            self.depth = d as u32;
+        }
     }
 
     impl std::fmt::Display for Settings {
         fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-            write!(f, "check {} with depth {}", self.base.display(), self.depth).unwrap();
-            todo!();
+            return write!(f, "check {} with depth {}", self.base.display(), self.depth);
         }
     }
 

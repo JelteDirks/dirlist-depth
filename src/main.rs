@@ -2,16 +2,16 @@ use std::fs::read_dir;
 use std::io::BufWriter;
 use std::io::Write;
 use std::io::stderr;
+use std::io::stdout;
 use std::path::PathBuf;
 
 use lsdep::settings::Settings;
 
 fn main() {
     let settings = Settings::from_args(std::env::args());
+    write!(stdout(), "{settings}\n").unwrap();
     let mut result_list: Vec<PathBuf> = Vec::with_capacity((10 * settings.depth()) as usize);
     walk_dirs(&settings, &mut result_list);
-
-    dbg!(result_list);
 }
 
 
