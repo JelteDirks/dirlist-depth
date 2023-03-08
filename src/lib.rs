@@ -1,6 +1,6 @@
 pub mod settings {
-    use std::{process::exit, path::PathBuf, fs, io::stderr};
     use std::io::Write;
+    use std::{fs, io::stderr, path::PathBuf, process::exit};
 
     pub struct Settings {
         depth: u32,
@@ -17,7 +17,7 @@ pub mod settings {
                     "base could not be resolved: {}",
                     base.err().unwrap()
                 )
-                    .unwrap();
+                .unwrap();
                 exit(1);
             }
 
@@ -27,8 +27,7 @@ pub mod settings {
             };
         }
 
-        pub fn from_args(args: std::env::Args) -> Settings { 
-
+        pub fn from_args(args: std::env::Args) -> Settings {
             let mut args_iter = args.skip(1);
             let base_dir = args_iter.next();
 
@@ -70,6 +69,4 @@ pub mod settings {
             return write!(f, "check {} with depth {}", self.base.display(), self.depth);
         }
     }
-
 }
-

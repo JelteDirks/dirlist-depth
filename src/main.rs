@@ -1,8 +1,8 @@
 use std::fs::read_dir;
-use std::io::BufWriter;
-use std::io::Write;
 use std::io::stderr;
 use std::io::stdout;
+use std::io::BufWriter;
+use std::io::Write;
 use std::path::PathBuf;
 
 use lsdep::settings::Settings;
@@ -14,10 +14,13 @@ fn main() {
     walk_dirs(&settings, &mut result_list);
 }
 
-
 fn walk_dirs(settings: &Settings, result_dirs: &mut Vec<PathBuf>) {
     let mut depth = settings.depth();
-    let mut working_dirs: Vec<PathBuf> = Vec::with_capacity(depth.pow(2) as usize);
+    let power = depth.pow(2);
+    let cut_off = 2usize.pow(20);
+    let capacity: usize = if power > cut_off { cut_off } else { power };
+
+    let mut working_dirs: Vec<PathBuf> = Vec::with_capacity(capacity);
 
     working_dirs.push(settings.base());
 
@@ -72,4 +75,3 @@ fn walk_dirs(settings: &Settings, result_dirs: &mut Vec<PathBuf>) {
 
     err_stream.flush().unwrap();
 }
-
